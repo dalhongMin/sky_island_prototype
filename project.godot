@@ -1,0 +1,38 @@
+; Engine configuration file.
+; Sky Island — vertical visual prototype (Godot 4.7, Mobile renderer).
+
+config_version=5
+
+[application]
+
+config/name="Sky Island Prototype"
+config/description="Vertical low-poly floating island prototype: care, three growth stages, day/sunset/night, one sky whale visit."
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7", "Mobile")
+
+[autoload]
+
+GameState="*res://scripts/state/sky_island_state.gd"
+
+[display]
+
+window/size/viewport_width=1080
+window/size/viewport_height=1920
+window/size/window_width_override=540
+window/size/window_height_override=960
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+window/handheld/orientation=1
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[rendering]
+
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+textures/vram_compression/import_etc2_astc=true
+lights_and_shadows/directional_shadow/size=2048
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=1
+anti_aliasing/quality/msaa_3d=1

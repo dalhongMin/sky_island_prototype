@@ -1,0 +1,89 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/world/island_world.gd" id="2_world"]
+[ext_resource type="Script" path="res://scripts/world/cloud_field.gd" id="3_clouds"]
+[ext_resource type="Script" path="res://scripts/world/sky_whale.gd" id="4_whale"]
+[ext_resource type="Script" path="res://scripts/world/sky_cycle.gd" id="5_cycle"]
+[ext_resource type="Script" path="res://scripts/camera_rig.gd" id="6_camera"]
+[ext_resource type="Shader" path="res://assets/shaders/sky_gradient.gdshader" id="7_sky"]
+[ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="8_hud"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+shader = ExtResource("7_sky")
+shader_parameter/top_color = Color(0.27, 0.56, 0.86, 1.0)
+shader_parameter/horizon_color = Color(0.8, 0.9, 0.95, 1.0)
+shader_parameter/glow_color = Color(1.0, 0.97, 0.88, 1.0)
+shader_parameter/glow_strength = 0.35
+shader_parameter/glow_tightness = 40.0
+shader_parameter/star_amount = 0.0
+shader_parameter/sun_direction = Vector3(0.4, 0.6, -0.5)
+shader_parameter/moon_color = Color(0.95, 0.95, 0.9, 1.0)
+shader_parameter/moon_direction = Vector3(-0.272, 0.268, -0.924)
+shader_parameter/moon_radius = 0.042
+shader_parameter/moon_amount = 0.0
+
+[sub_resource type="Sky" id="Sky_main"]
+sky_material = SubResource("ShaderMaterial_sky")
+process_mode = 2
+radiance_size = 1
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 2
+sky = SubResource("Sky_main")
+ambient_light_source = 2
+ambient_light_color = Color(0.56, 0.68, 0.82, 1.0)
+ambient_light_energy = 0.5
+reflected_light_source = 1
+tonemap_mode = 2
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="World" type="Node3D" parent="." groups=["island_world"]]
+script = ExtResource("2_world")
+
+[node name="IslandRoot" type="Node3D" parent="World"]
+
+[node name="GrowthFlash" type="OmniLight3D" parent="World/IslandRoot"]
+position = Vector3(0, 1.3, 0)
+visible = false
+light_color = Color(1.0, 0.88, 0.66, 1.0)
+light_energy = 0.0
+shadow_enabled = false
+omni_range = 9.0
+omni_attenuation = 1.2
+
+[node name="Clouds" type="Node3D" parent="."]
+script = ExtResource("3_clouds")
+
+[node name="SkyWhale" type="Node3D" parent="."]
+script = ExtResource("4_whale")
+
+[node name="SkyCycle" type="Node3D" parent="."]
+script = ExtResource("5_cycle")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="SkyCycle"]
+environment = SubResource("Environment_main")
+
+[node name="SunLight" type="DirectionalLight3D" parent="SkyCycle"]
+position = Vector3(0, 12, 0)
+rotation_degrees = Vector3(-52, -28, 0)
+light_color = Color(1.0, 0.96, 0.86, 1.0)
+light_energy = 1.35
+shadow_enabled = true
+directional_shadow_mode = 0
+directional_shadow_max_distance = 42.0
+
+[node name="CameraRig" type="Node3D" parent="."]
+script = ExtResource("6_camera")
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig"]
+position = Vector3(0, 4.2, 10.3)
+rotation_degrees = Vector3(-15, 0, 0)
+keep_aspect = 0
+fov = 54.0
+near = 0.1
+far = 140.0
+
+[node name="HUD" parent="." instance=ExtResource("8_hud")]
