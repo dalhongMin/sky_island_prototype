@@ -26,14 +26,22 @@ resolution is 1080×1920 portrait; the desktop window opens at 540×960
 | Input | Effect |
 | --- | --- |
 | **TEND THE ISLAND** button | one unit of care |
-| Tap or stroke the island itself | one unit of care, plus care per pixel dragged |
-| Drag the empty sky | look left/right, about ±10°, springs back when released |
+| Tap the island itself | one unit of care — a press that stays within 16 px and starts and ends on the island |
+| Drag anywhere in the world | orbit the camera: yaw all the way round, elevation 15°–60° |
+| Two-finger pinch, trackpad pinch, mouse wheel | zoom between 6.9 and 16 units from the pivot |
+| **Reset view** | back to the default framing (yaw 0°, elevation 22°, distance 11.1) |
 | **Day / Sunset / Night** | jump to that time of day (2.5 s blend) and stop the automatic cycle |
 | **Auto** | resume the automatic day → sunset → night cycle |
 
-Three care units grow the island one stage, so stage 3 is about nine taps and
-roughly five seconds including the three growth animations. Growth is never
-gated on the time of day.
+The camera never springs back: the view you leave is the view you get until you
+ask for it back with **Reset view**. A drag is never care, a pinch is never
+care, and while a finger is on a HUD bar nothing else may tend the island or
+move the camera — `scripts/main.gd` owns every pointer from press to release
+and hands it to exactly one of the HUD, the camera or a pending tap.
+
+Three care units grow the island one stage, so stage 3 is nine taps; the
+headless run reaches it in 3.0 s of growth locks. Growth is never gated on the
+time of day.
 
 To see the whale: reach stage 3, press **Night**, and keep watching — the first
 visit starts about two seconds later and the whale stays in frame for roughly
@@ -51,7 +59,8 @@ scenes/main.tscn           world, sky cycle, camera rig, HUD instance
 scenes/hud.tscn            top status bar and bottom control bar
 scripts/state/             sky_island_state.gd — the authoritative state
 scripts/world/             island_world.gd, sky_cycle.gd, cloud_field.gd, sky_whale.gd
-scripts/art/               low_poly.gd, mesh_kit.gd, palette.gd, whale_mesh.gd
+scripts/art/               island_shell.gd (the terrain), low_poly.gd, mesh_kit.gd,
+                           palette.gd, whale_mesh.gd
 scripts/                   main.gd (input routing), camera_rig.gd
 scripts/ui/hud.gd          HUD, reads state and never stores it
 assets/shaders/            sky_gradient.gdshader, foliage_sway.gdshader
@@ -71,24 +80,43 @@ A few decisions worth knowing:
   once and hands the same resource to every instance. The whole diorama is a
   few thousand triangles with about fifteen materials, no textures, no outline
   passes and no screen-space post-processing.
+- **The terrain is one closed shell per stage.** `scripts/art/island_shell.gd`
+  builds each stage as a single body: an organic perimeter `R(stage, angle)`
+  that only ever pushes outwards, a contiguous top surface on a polar grid
+  inside it, and one faceted keel hanging off the same rim ring down to a single
+  apex — not a stack of plates. Stage 3 adds two contours of that same surface,
+  a raised headland to the north west and a pond in a basin to the south east,
+  both gated outside the radius the earlier stages plant on. Exactly one shell
+  is visible at a time; growing swaps in the larger one scaled to the old
+  outline and lets it expand, so the player watches the coastline move.
 - **Growth is additive.** All four stage groups are built at startup; growing
-  reveals the next group with a staggered 1.5 s pop-in plus a short warm light
-  flash. Earlier content is never removed, and stage 1 also lays a grass patch
-  over the bare starting core so already-seen ground changes too.
+  reveals the next group with a staggered pop-in plus a short warm light flash.
+  Earlier content is never removed, and the bare soil of stage 0 greens over the
+  whole island at stage 1, so already-seen ground changes too. Every prop is
+  placed through `IslandShell.plant_point()`, which keeps it out of the rim fold
+  and off any ground a later stage folds away, and then takes its height from
+  `IslandShell.surface_height()` — the triangle it is actually standing on, at
+  its own stage and at every stage after it.
 - **Care and camera cannot fight.** HUD `Control` nodes consume their own
-  touches; what is left reaches `main.gd`, which intersects the pointer ray
-  with the island plane. Inside the stage radius it is care, outside it is a
-  camera look. No physics bodies and no 360° orbit.
+  touches, and `main.gd` watches every pointer in `_input()`, before the GUI
+  picks anything, so a world drag that ends over a HUD button cannot leave a
+  pointer stuck down. One world pointer past the tap slop orbits, two pinch
+  zoom, and care is only added on a release that never dragged, was never joined
+  by a second finger and both started and ended on the island. No physics
+  bodies; the orbit does go all the way round, with the elevation clamped so the
+  camera never crawls under the keel.
 - **Lights are few.** One directional light with shadows, two lanterns and one
   crystal (omni, no shadows, hidden unless it is night), plus one short growth
   flash and one light on the whale. Clouds and the whale cast no shadows and
   everything is opaque, so there is no transparency overdraw.
-- **The diorama is framed, not centred.** The camera sits at `(0, 4.2, 10.3)`
-  and looks 15° down, which puts a fully grown island across 78 % of the
-  portrait width between 46 % and 71 % of its height: clear of both HUD bars,
-  with the band of sky above it left free for the whale. It stays whole at both
-  ends of the ±10° look-around. `tests/prototype_test.gd` measures all of that
-  from the real vertices, so a framing change that crops the island fails.
+- **The diorama is framed, not centred.** The rig orbits a pivot just above the
+  ground plane at 22° elevation and 11.1 units out, with an extra 6.8° of
+  upward camera tilt. That puts a fully grown island across 72 % of the portrait
+  width between 47 % and 75 % of its height: clear of both HUD bars, with the
+  band of sky above it left free for the whale. It stays whole at eight bearings
+  all the way round and at both ends of the elevation range.
+  `tests/prototype_test.gd` measures all of that from the real vertices, so a
+  framing change that crops the island fails.
 - **Night is lit, not just darkened.** Moonlight and sky ambient are strong
   enough to keep the terrain, the trees and the rock edges readable, and the
   whale skips the day/night tint entirely: pale flippers and fluke against a
@@ -101,20 +129,15 @@ A few decisions worth knowing:
 
 ## Verification
 
-Both commands were run on macOS (darwin 25.5.0) with Godot 4.7.2.stable:
-
-```
-/Applications/Godot.app/Contents/MacOS/Godot --headless \
-  --path /Users/mindalhong/Desktop/Project/sky_island_prototype --editor --quit
-```
-Exit code 0, no parse or import errors.
+The headless suite is the one check recorded here. It was run on macOS
+(darwin 25.5.0) with Godot 4.7.2.stable:
 
 ```
 /Applications/Godot.app/Contents/MacOS/Godot --headless \
   --path /Users/mindalhong/Desktop/Project/sky_island_prototype \
   --script res://tests/prototype_test.gd
 ```
-Exit code 0, 88 checks, 0 failures. It covers:
+Exit code 0, 177 checks, 0 failures. It covers:
 
 - care → stage transitions, the growth input lock, the stage cap, and that
   stage 3 costs at most 12 taps and a few seconds;
@@ -125,27 +148,52 @@ Exit code 0, 88 checks, 0 failures. It covers:
 - the triangle winding convention, read off the engine's own `BoxMesh` and
   compared against the generated island and whale (this is what keeps the
   meshes from rendering inside out), plus outward-facing normals;
-- the generated meshes build, the island chunk keeps separate rock/ground
-  surfaces, and the whale body/fluke/fins have the proportions the silhouette
-  needs;
+- the island shell staying one body at every stage: ground facets that all face
+  the sky, rock that never points back up, a rim the ground and the keel share
+  to the millimetre, a steep cliff under that rim, a keel that narrows to one
+  apex instead of several cones, a coastline that only grows outwards, a core
+  whose height never changes between stages, and a pond that fits inside its own
+  shoreline;
+- every prop standing on the drawn shell within 3 cm — at the stage that planted
+  it *and* at the last stage — inside its own coastline, on ground no later
+  contour moves, and no two props in the same spot;
+- the generated meshes build, and the whale body/fluke/fins have the proportions
+  the silhouette needs;
+- the camera clamps: the elevation range, both zoom limits, a yaw that wraps
+  instead of running away, and a near limit that still stands off the widest
+  coastline;
+- pointer ownership, both straight at the handler and through the real
+  `Viewport.push_input()` GUI pipeline: tap versus drag versus pinch, the tap
+  slop, emulated duplicate pointers, focus loss and cancelled touches, a HUD
+  finger blocking everything else, and a parked view that is still there seconds
+  later;
 - both shaders parse (11 and 6 uniforms reported) and the moon stays a sky
   uniform instead of becoming a light;
 - `scenes/main.tscn` instantiates, every scripted node path resolves, later
   stages start hidden, and a grown island at night really does put a visible
   whale in the sky;
-- the portrait framing: a grown island covers 70–85 % of the width, clears both
-  HUD bars, is never cropped at ±10° of look-around, the starting island is
-  still a third of the width, and a whale halfway through its visit is large,
-  roughly centred and clear of both the island and the top bar.
+- the portrait framing: a grown island covers 70–88 % of the width (72 %
+  measured), clears both HUD bars, is never cropped at eight bearings around the
+  orbit or at either end of the elevation range, the starting island is still
+  40 % of the width, and a whale halfway through its visit is large, roughly
+  centred and clear of both the island and the top bar.
+
+An editor import pass is worth running after any scene or asset change, but its
+result is not recorded here:
+
+```
+/Applications/Godot.app/Contents/MacOS/Godot --headless \
+  --path /Users/mindalhong/Desktop/Project/sky_island_prototype --editor --quit
+```
 
 ### Screenshots
 
-`tools/capture_prototype.gd` drives the real scene (care to stage 3, then
-Night, then the whale, then the quiet night once the whale has left) and writes
-the six PNGs in `docs/images/`. It needs a real window, so it cannot run under
-`--headless`. It was run on macOS with the Metal / Forward Mobile renderer and
-reported the island covering 37 % of the width at stage 0 and 78 % at stage 3.
-The exact command is:
+`tools/capture_prototype.gd` drives the real scene — care to stage 3, two
+camera moves around the grown island, then Night, then the whale, then the
+quiet night once the whale has left — and writes the eight PNGs in
+`docs/images/`. It needs a real window, so it cannot run under `--headless`,
+and it prints the island's screen coverage for each shot it takes. The exact
+command is:
 
 ```
 /Applications/Godot.app/Contents/MacOS/Godot \
@@ -154,8 +202,11 @@ The exact command is:
 ```
 
 It writes `01_stage0_day.png`, `02_stage1_day.png`, `03_stage2_day.png`,
-`04_stage3_day.png`, `05_stage3_night.png` and `06_sky_whale.png`, only inside
-this project; it never reads or writes `user://`.
+`04_stage3_day.png`, `05_stage3_night.png`, `06_sky_whale.png` and two views
+the fixed portrait shot cannot show: `07_stage3_orbit.png` from the far side at
+134°, and `08_stage3_close.png` from a close low angle where a terrain built out
+of stacked plates would be obvious. It only ever writes inside this project; it
+never reads or writes `user://`.
 
 ## Not verified / not claimed
 
@@ -172,7 +223,8 @@ this project; it never reads or writes `user://`.
 - No claims about long-term fun, retention, economy or balance. The pacing
   numbers exist so a 60–90 second demo fits, nothing more.
 - The art is placeholder-grade procedural geometry, not finished art.
-- Repeat whale visits, the care-stroke feel and the camera spring-back are
-  untuned guesses.
+- Repeat whale visits and the feel of the orbit, the pinch zoom and the tap slop
+  are untuned guesses. Only the clamps are checked, not whether the gesture
+  speeds are pleasant — and never with a thumb on a real phone.
 
 `docs/status.md` and `docs/handoff.md` are maintained by Codex, not here.

@@ -19,29 +19,8 @@ static func get_mesh(key: String) -> ArrayMesh:
 	return mesh
 
 
-## A floating rock: flat top (surface 1, grass) over a tapering craggy
-## underside (surface 0, rock). The per-angle radius modifiers are seeded, so
-## every chunk keeps a stable irregular silhouette.
-static func chunk(radius: float, depth: float, sides: int, seed_value: int) -> ArrayMesh:
-	var key := "chunk:%.2f:%.2f:%d:%d" % [radius, depth, sides, seed_value]
-	if _cache.has(key):
-		return _cache[key]
-	var profile := [
-		Vector2(0.0, -depth),
-		Vector2(radius * 0.26, -depth * 0.74),
-		Vector2(radius * 0.60, -depth * 0.42),
-		Vector2(radius * 0.87, -depth * 0.15),
-		Vector2(radius, -0.06),
-		Vector2(radius * 0.96, 0.0),
-	]
-	var mods := LowPoly.make_mods(sides, 0.17, seed_value)
-	var mesh := LowPoly.revolve(profile, sides, mods, false, true, true, 0.0, seed_value)
-	_cache[key] = mesh
-	return mesh
-
-
-## Thin irregular disc, used both for the pond surface and for laying a new
-## ground cover over an older chunk when the island grows.
+## Thin irregular disc, used for the pond surface. The island body itself is
+## one shell per stage, built by scripts/art/island_shell.gd.
 static func flat_disc(radius: float, seed_value: int) -> ArrayMesh:
 	var key := "disc:%.2f:%d" % [radius, seed_value]
 	if _cache.has(key):

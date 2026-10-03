@@ -26,7 +26,13 @@ window/handheld/orientation=1
 
 [input_devices]
 
-pointing/emulate_touch_from_mouse=true
+; A mouse stays a mouse: scripts/main.gd handles mouse and touch separately, so
+; synthesising touches here would feed every desktop drag in twice.
+pointing/emulate_touch_from_mouse=false
+; Kept on because Button only reacts to mouse events, so the HUD needs this to
+; work under a finger. The events it synthesises carry device -1 and main.gd
+; drops them, which is what keeps one finger from counting as two pointers.
+pointing/emulate_mouse_from_touch=true
 
 [rendering]
 

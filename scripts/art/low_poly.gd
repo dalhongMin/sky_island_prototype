@@ -144,6 +144,49 @@ static func flat_polygon_set(parts: Array) -> ArrayMesh:
 	return mesh
 
 
+## Per-facet colour ramp from `low_y` to `high_y`, returned as a new mesh with
+## an ARRAY_COLOR channel. The colour is taken once per triangle from the face
+## centre, so a flat shaded mesh keeps crisp facet edges instead of smearing a
+## gradient across a face. Used for the whale's pale belly / lavender back on a
+## single mesh and material.
+static func paint_by_height(mesh: ArrayMesh, low_y: float, high_y: float,
+		low_color: Color, high_color: Color) -> ArrayMesh:
+	var out := ArrayMesh.new()
+	var span := maxf(high_y - low_y, 0.0001)
+	for surface in mesh.get_surface_count():
+		var arrays := mesh.surface_get_arrays(surface)
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var colors := PackedColorArray()
+		colors.resize(verts.size())
+		for t in verts.size() / 3:
+			var centre := (verts[t * 3].y + verts[t * 3 + 1].y + verts[t * 3 + 2].y) / 3.0
+			var color := low_color.lerp(high_color, clampf((centre - low_y) / span, 0.0, 1.0))
+			for k in 3:
+				colors[t * 3 + k] = color
+		arrays[Mesh.ARRAY_COLOR] = colors
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return out
+
+
+# --- face buffers ----------------------------------------------------------
+# For builders that need more than a lathe or a flat polygon — island_shell.gd
+# sweeps its own polar grid — but must keep the same winding and flat shading.
+
+static func new_faces() -> Array:
+	return [[], []]
+
+
+## Appends one triangle, given counter-clockwise as seen from outside.
+static func add_face(faces: Array, a: Vector3, b: Vector3, c: Vector3) -> void:
+	_tri(faces, a, b, c)
+
+
+## Turns a face buffer into the next surface of `mesh`. An empty buffer adds
+## nothing, so surface indices stay predictable only while buffers are filled.
+static func add_faces_surface(mesh: ArrayMesh, faces: Array) -> void:
+	_add_surface(mesh, faces, Basis.IDENTITY)
+
+
 ## A tuft of tapered blades leaning outwards. Normals are biased upwards so
 ## the vertical blades still catch the sun instead of going flat grey.
 static func grass_tuft(count: int, height: float, width: float, lean: float, seed_value: int) -> ArrayMesh:

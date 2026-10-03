@@ -21,9 +21,11 @@ script = ExtResource("1_hud")
 
 [node name="Top" type="PanelContainer" parent="."]
 anchor_right = 1.0
+mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_top")
 
 [node name="Box" type="VBoxContainer" parent="Top"]
+mouse_filter = 1
 theme_override_constants/separation = 14
 
 [node name="StageLabel" type="Label" parent="Top/Box"]
@@ -32,6 +34,7 @@ theme_override_font_sizes/font_size = 46
 text = "ISLAND STAGE 0 / 3"
 
 [node name="Progress" type="ProgressBar" parent="Top/Box"]
+mouse_filter = 1
 custom_minimum_size = Vector2(0, 24)
 max_value = 1.0
 step = 0.01
@@ -41,7 +44,7 @@ show_percentage = false
 [node name="Hint" type="Label" parent="Top/Box"]
 theme_override_colors/font_color = Color(0.74, 0.81, 0.92, 1.0)
 theme_override_font_sizes/font_size = 32
-text = "Tend the island, or stroke it directly. Drag the sky to look around."
+text = "Tap the island to tend it."
 autowrap_mode = 2
 
 [node name="Bottom" type="PanelContainer" parent="."]
@@ -49,12 +52,32 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_vertical = 0
+mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_bottom")
 
 [node name="Box" type="VBoxContainer" parent="Bottom"]
+mouse_filter = 1
 theme_override_constants/separation = 22
 
+[node name="ViewRow" type="HBoxContainer" parent="Bottom/Box"]
+mouse_filter = 1
+theme_override_constants/separation = 16
+
+[node name="ControlHint" type="Label" parent="Bottom/Box/ViewRow"]
+size_flags_horizontal = 3
+size_flags_vertical = 5
+theme_override_colors/font_color = Color(0.68, 0.76, 0.89, 1.0)
+theme_override_font_sizes/font_size = 28
+text = "Drag to orbit · pinch or wheel to zoom"
+autowrap_mode = 2
+
+[node name="ResetViewButton" type="Button" parent="Bottom/Box/ViewRow"]
+custom_minimum_size = Vector2(246, 72)
+theme_override_font_sizes/font_size = 30
+text = "Reset view"
+
 [node name="TimeRow" type="HBoxContainer" parent="Bottom/Box"]
+mouse_filter = 1
 theme_override_constants/separation = 14
 
 [node name="DayButton" type="Button" parent="Bottom/Box/TimeRow"]

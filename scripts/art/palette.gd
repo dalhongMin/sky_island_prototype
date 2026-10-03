@@ -8,6 +8,11 @@ extends RefCounted
 
 const FOLIAGE_SHADER := preload("res://assets/shaders/foliage_sway.gdshader")
 
+## The whale is flat shaded from one mesh, so its two tones live in vertex
+## colours (see LowPoly.paint_by_height) instead of in two materials.
+const WHALE_BELLY := Color(0.82, 0.85, 0.95)
+const WHALE_BACK := Color(0.36, 0.33, 0.62)
+
 static var rock: StandardMaterial3D
 static var soil: StandardMaterial3D
 static var grass_top: StandardMaterial3D
@@ -66,21 +71,26 @@ static func ensure() -> void:
 	_make_emissive(crystal, Color(0.45, 0.80, 1.0), 2.0)
 
 	# The whale only ever flies at night, so its materials skip the day/night
-	# tint: they are authored for the one sky they are ever seen against. Pale
-	# fins against a mid-blue body keep the flippers and the fluke apart from
-	# the silhouette, and a little emission stops the whole animal from sinking
-	# into the dark sky.
-	whale_body = _untinted(Color(0.28, 0.37, 0.63))
-	_make_emissive(whale_body, Color(0.18, 0.28, 0.56), 0.45)
-	whale_fin = _untinted(Color(0.47, 0.58, 0.84))
+	# tint: they are authored for the one sky they are ever seen against. The
+	# body takes its colour from the mesh (WHALE_BELLY to WHALE_BACK), the fins
+	# stay pale so the flippers and the fluke read apart from the silhouette,
+	# and a little emission stops the animal sinking into the dark sky.
+	whale_body = _untinted(Color.WHITE)
+	whale_body.vertex_color_use_as_albedo = true
+	_make_emissive(whale_body, Color(0.20, 0.24, 0.50), 0.40)
+	whale_fin = _untinted(Color(0.62, 0.66, 0.88))
 	whale_fin.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_make_emissive(whale_fin, Color(0.30, 0.42, 0.70), 0.60)
-	whale_eye = _untinted(Color(0.88, 0.93, 1.0))
-	_make_emissive(whale_eye, Color(0.80, 0.90, 1.0), 1.6)
-	whale_mark = _untinted(Color(0.74, 0.90, 1.0))
+	_make_emissive(whale_fin, Color(0.34, 0.40, 0.72), 0.55)
+	whale_eye = _untinted(Color(0.12, 0.14, 0.26))
+	_make_emissive(whale_eye, Color(0.55, 0.72, 1.0), 0.9)
+	# Accents on the skin, not lamps: at the old energy the patches burned out to
+	# white and read as a string of beads hung round the animal. This is bright
+	# enough to be seen against a night sky and no brighter.
+	whale_mark = _untinted(Color(0.60, 0.74, 0.92))
+	whale_mark.cull_mode = BaseMaterial3D.CULL_DISABLED
 	whale_mark.emission_enabled = true
-	whale_mark.emission = Color(0.66, 0.88, 1.0)
-	whale_mark.emission_energy_multiplier = 3.0
+	whale_mark.emission = Color(0.46, 0.68, 0.95)
+	whale_mark.emission_energy_multiplier = 0.75
 
 	grass_blade = _foliage_material(Color(0.46, 0.68, 0.33), 0.16, 1.3)
 	leaf_dark = _foliage_material(Color(0.24, 0.49, 0.33), 0.05, 0.7)

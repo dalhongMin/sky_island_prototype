@@ -1,21 +1,33 @@
 extends CanvasLayer
 
 ## Restrained 2D HUD: growth stage, the care button, the demo time-of-day
-## buttons and one line of guidance. Two slim bars at the top and bottom of
-## the portrait viewport, so the island silhouette and the whale stay clear.
+## buttons, the Reset view control and one line of guidance. Two slim bars at
+## the top and bottom of the portrait viewport, so the island silhouette and
+## the whale stay clear.
 ##
-## The HUD keeps no state of its own; it reads GameState every frame.
+## The HUD keeps no state of its own; it reads GameState every frame, and asks
+## the camera for nothing — pressing Reset view only emits a signal.
+##
+## It also answers blocks_point(), which is how main.gd keeps a finger on a bar
+## out of the world. Control nodes consume mouse presses themselves, but a real
+## touch is not routed through the GUI the same way, so the exclusion has to be
+## something the world can ask about directly.
 ##
 ## Text is English: no Korean font is bundled with the prototype (see README).
+
+signal reset_view_requested()
 
 const State := preload("res://scripts/state/sky_island_state.gd")
 
 const PHASE_NAMES := ["Day", "Sunset", "Night"]
 
+@onready var _top: Control = $Top
+@onready var _bottom: Control = $Bottom
 @onready var _stage_label: Label = $Top/Box/StageLabel
 @onready var _progress: ProgressBar = $Top/Box/Progress
 @onready var _hint: Label = $Top/Box/Hint
 @onready var _tend_button: Button = $Bottom/Box/TendButton
+@onready var _reset_view_button: Button = $Bottom/Box/ViewRow/ResetViewButton
 @onready var _day_button: Button = $Bottom/Box/TimeRow/DayButton
 @onready var _sunset_button: Button = $Bottom/Box/TimeRow/SunsetButton
 @onready var _night_button: Button = $Bottom/Box/TimeRow/NightButton
@@ -24,11 +36,20 @@ const PHASE_NAMES := ["Day", "Sunset", "Night"]
 
 func _ready() -> void:
 	_tend_button.pressed.connect(_on_tend_pressed)
+	_reset_view_button.pressed.connect(func() -> void: reset_view_requested.emit())
 	_day_button.pressed.connect(_on_phase_pressed.bind(State.TimePhase.DAY))
 	_sunset_button.pressed.connect(_on_phase_pressed.bind(State.TimePhase.SUNSET))
 	_night_button.pressed.connect(_on_phase_pressed.bind(State.TimePhase.NIGHT))
 	_auto_button.pressed.connect(_on_auto_pressed)
 	_refresh()
+
+
+## True when a viewport point belongs to the HUD. Everything on either bar is
+## the HUD's, including its background: nothing there may orbit the camera or
+## tend the island.
+func blocks_point(point: Vector2) -> bool:
+	return _top.get_global_rect().has_point(point) \
+		or _bottom.get_global_rect().has_point(point)
 
 
 func _process(_delta: float) -> void:
@@ -67,7 +88,7 @@ func _hint_text() -> String:
 	if GameState.is_growing():
 		return "The island is growing..."
 	if not GameState.is_fully_grown():
-		return "Tend the island, or stroke it directly. Drag the sky to look around."
+		return "Tap the island to tend it, or use the button below."
 	if not GameState.is_night():
 		return "The island is grown. Switch to Night and watch the sky."
 	if not GameState.first_whale_seen:

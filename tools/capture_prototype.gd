@@ -55,6 +55,20 @@ func _run() -> void:
 		await _wait(2.2)
 		await _shot("%02d_stage%d_day.png" % [stage + 2, stage + 1])
 
+	# Two views of the grown island that the fixed portrait shot cannot show:
+	# the far side, and a close low angle where a stack of plates would be
+	# obvious if the terrain were still built that way.
+	var rig := _main.get_node_or_null("CameraRig")
+	if rig != null:
+		rig.set_view(134.0, 26.0, 11.1)
+		await _wait(0.8)
+		await _shot("07_stage3_orbit.png")
+		rig.set_view(38.0, 17.0, 7.3)
+		await _wait(0.8)
+		await _shot("08_stage3_close.png")
+		rig.reset_view()
+		await _wait(0.8)
+
 	_state.set_time_phase(2, true)  # TimePhase.NIGHT
 
 	# The gate opens about two seconds after the sky goes dark, which is before
